@@ -1,4 +1,4 @@
-module gitlab.com/daneofmanythings/zahra_bday
+module gitlab.com/daneofmanythings/worhdle
 
 go 1.21.4
 
