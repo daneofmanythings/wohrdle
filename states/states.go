@@ -99,7 +99,8 @@ func NewGameSession(alertchan chan bool, params *Parameters) *GameSession {
 		state:      ACTIVE,
 		SeenChars:  NewSeenCharRecord(),
 	}
-	word := gs.validWords[rand.Intn(len(gs.validWords))]
+	// word := gs.validWords[rand.Intn(len(gs.validWords))]
+	word := "zahra"
 	gs.targetWordAsString = strings.ToUpper(word)
 	gs.targetWordAsRunes = utils.RuneSliceToUpper([]rune(word))
 
@@ -206,6 +207,7 @@ func (gs *GameSession) finalizeCurRow() {
 			cell.SetState(PARTIAL)
 			gs.SeenChars[idx].SetState(PARTIAL)
 		} else {
+			cell.SetState(USED)
 			gs.SeenChars[idx].SetState(USED)
 		}
 	}

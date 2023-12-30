@@ -8,18 +8,19 @@ import (
 type Renderer struct {
 	xSpacing int
 	ySpacing int
+	defStyle tcell.Style
 }
 
 func NewRenderer() *Renderer {
 	return &Renderer{
 		xSpacing: 4,
 		ySpacing: 2,
+		defStyle: tcell.StyleDefault,
 	}
 }
 
 func (r *Renderer) DrawGameSession(s tcell.Screen, gs *states.GameSession) {
 	s.Clear()
-	style := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
 	// colorStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorGreen)
 	defer s.Show()
 
@@ -34,7 +35,7 @@ func (r *Renderer) DrawGameSession(s tcell.Screen, gs *states.GameSession) {
 	for y := 0; y <= gs.NumGuesses; y++ {
 		for x := 0; x < gs.WordLen; x++ {
 			for n := 1; n < r.xSpacing; n++ {
-				s.SetContent(x*r.xSpacing+x1+n, y*r.ySpacing+y1, tcell.RuneHLine, nil, style)
+				s.SetContent(x*r.xSpacing+x1+n, y*r.ySpacing+y1, tcell.RuneHLine, nil, r.defStyle)
 			}
 		}
 	}
@@ -42,38 +43,38 @@ func (r *Renderer) DrawGameSession(s tcell.Screen, gs *states.GameSession) {
 	// draw vertical ticks
 	for x := 0; x <= gs.WordLen; x++ {
 		for y := 0; y < gs.NumGuesses; y++ {
-			s.SetContent(x*r.xSpacing+x1, y*r.ySpacing+y1+1, tcell.RuneVLine, nil, style)
+			s.SetContent(x*r.xSpacing+x1, y*r.ySpacing+y1+1, tcell.RuneVLine, nil, r.defStyle)
 		}
 	}
 
 	// draw corners
-	s.SetContent(x1, y1, tcell.RuneULCorner, nil, style)
-	s.SetContent(x2, y1, tcell.RuneURCorner, nil, style)
-	s.SetContent(x1, y2, tcell.RuneLLCorner, nil, style)
-	s.SetContent(x2, y2, tcell.RuneLRCorner, nil, style)
+	s.SetContent(x1, y1, tcell.RuneULCorner, nil, r.defStyle)
+	s.SetContent(x2, y1, tcell.RuneURCorner, nil, r.defStyle)
+	s.SetContent(x1, y2, tcell.RuneLLCorner, nil, r.defStyle)
+	s.SetContent(x2, y2, tcell.RuneLRCorner, nil, r.defStyle)
 
 	// draw tees
 	// top
 	for i := 1; i < gs.WordLen; i++ {
-		s.SetContent(i*r.xSpacing+x1, y1, tcell.RuneTTee, nil, style)
+		s.SetContent(i*r.xSpacing+x1, y1, tcell.RuneTTee, nil, r.defStyle)
 	}
 	// bottom
 	for i := 1; i < gs.WordLen; i++ {
-		s.SetContent(i*r.xSpacing+x1, y2, tcell.RuneBTee, nil, style)
+		s.SetContent(i*r.xSpacing+x1, y2, tcell.RuneBTee, nil, r.defStyle)
 	}
 	// left
 	for i := 1; i < gs.NumGuesses; i++ {
-		s.SetContent(x1, i*r.ySpacing+y1, tcell.RuneLTee, nil, style)
+		s.SetContent(x1, i*r.ySpacing+y1, tcell.RuneLTee, nil, r.defStyle)
 	}
 	// Right
 	for i := 1; i < gs.NumGuesses; i++ {
-		s.SetContent(x2, i*r.ySpacing+y1, tcell.RuneRTee, nil, style)
+		s.SetContent(x2, i*r.ySpacing+y1, tcell.RuneRTee, nil, r.defStyle)
 	}
 
 	// fill middle with pluses
 	for j := 1; j < gs.NumGuesses; j++ {
 		for i := 1; i < gs.WordLen; i++ {
-			s.SetContent(i*r.xSpacing+x1, j*r.ySpacing+y1, tcell.RunePlus, nil, style)
+			s.SetContent(i*r.xSpacing+x1, j*r.ySpacing+y1, tcell.RunePlus, nil, r.defStyle)
 		}
 	}
 
@@ -94,11 +95,13 @@ func drawCellChar(cell *states.Cell, x, y int, s tcell.Screen) {
 	var letterStyle tcell.Style
 	switch cell.GetState() {
 	case states.DEFAULT:
-		letterStyle = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
+		letterStyle = tcell.StyleDefault.Bold(true)
 	case states.CORRECT:
-		letterStyle = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorGreen)
+		letterStyle = tcell.StyleDefault.Foreground(tcell.ColorGreen).Bold(true)
 	case states.PARTIAL:
-		letterStyle = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorYellow)
+		letterStyle = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorYellow).Bold(true)
+	default:
+		letterStyle = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset)
 	}
 
 	s.SetContent(x, y, cell.Char, nil, letterStyle)
@@ -121,8 +124,9 @@ func drawSeenChars(x, y, x2 int, s tcell.Screen, gs *states.GameSession) {
 	row := y
 	col := x
 	var style tcell.Style
-	for _, r := range gs.SeenChars {
-		switch r.GetState() {
+	for _, cell := range gs.SeenChars {
+		char := cell.Char
+		switch cell.GetState() {
 		case states.CORRECT:
 			style = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorGreen)
 		case states.DEFAULT:
@@ -130,10 +134,9 @@ func drawSeenChars(x, y, x2 int, s tcell.Screen, gs *states.GameSession) {
 		case states.PARTIAL:
 			style = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorYellow)
 		case states.USED:
-			// TODO: fix this to properly reverse only the foreground color. hard coded atm
-			style = tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorBlack)
+			char = ' '
 		}
-		s.SetContent(col, row, r.Char, nil, style)
+		s.SetContent(col, row, char, nil, style)
 		col++
 		if col >= x2 {
 			row++
