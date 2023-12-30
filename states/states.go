@@ -24,7 +24,7 @@ type Parameters struct {
 
 func NewParameters(wordLen int, numGuesses int, wordRepo map[string][]string) Parameters {
 	// finding the bounds of wordLen for menu wrapping
-	word_lengths := make([]int, 16)
+	word_lengths := []int{}
 	for str_len := range wordRepo {
 		word_len, err := strconv.Atoi(str_len)
 		if err != nil {
@@ -56,7 +56,7 @@ func (p *Parameters) IncCurField() {
 func (p *Parameters) IncValAtCurField() {
 	if p.CurField == 0 {
 		if p.WordLen == p.MaxWordLen {
-			p.WordLen = 0
+			p.WordLen = 1
 		} else {
 			p.WordLen += 1
 		}
