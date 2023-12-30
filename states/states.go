@@ -186,6 +186,8 @@ func (gs *GameSession) PushRune(r rune) {
 	}
 	gs.Grid[gs.curIdx] = append(gs.Grid[gs.curIdx], cell)
 
+	gs.HelpText = ""
+
 	go func() {
 		gs.AlertChan <- true
 	}()
@@ -197,6 +199,8 @@ func (gs *GameSession) PopRune() {
 	}
 	gs.Grid[gs.curIdx] = gs.Grid[gs.curIdx][:len(gs.Grid[gs.curIdx])-1]
 
+	gs.HelpText = ""
+
 	go func() {
 		gs.AlertChan <- true
 	}()
@@ -204,6 +208,7 @@ func (gs *GameSession) PopRune() {
 
 func (gs *GameSession) ClearCurrentGuess() {
 	gs.Grid[gs.curIdx] = nil
+	gs.HelpText = ""
 	go func() {
 		gs.AlertChan <- true
 	}()

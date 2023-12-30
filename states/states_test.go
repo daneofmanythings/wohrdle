@@ -1,6 +1,7 @@
 package states
 
 import (
+	"strconv"
 	"testing"
 
 	"gitlab.com/daneofmanythings/worhdle/utils"
@@ -14,11 +15,17 @@ const (
 var alertChan = make(chan bool)
 
 func testnewGameSession() *GameSession {
-	vw := []string{testWordCorrect}
+	vw := map[string][]string{}
+	int_str := strconv.Itoa(len(testWordCorrect))
+	vw[int_str] = make([]string, 1)
+	vw[int_str] = append(vw[int_str], testWordCorrect)
 	p := Parameters{
 		5,
 		6,
 		vw,
+		0,
+		5,
+		5,
 	}
 	return NewGameSession(alertChan, &p)
 }
@@ -36,6 +43,7 @@ func TestIsValidWord(t *testing.T) {
 	}
 }
 
+// TODO: fix this test
 func TestIsWinner(t *testing.T) {
 	gs := testnewGameSession()
 	for _, r := range testWordCorrect {
