@@ -61,6 +61,9 @@ func (p *Parameters) IncValAtCurField() {
 			p.WordLen += 1
 		}
 	} else {
+		if p.NumGuesses == 20 {
+			return
+		}
 		p.NumGuesses += 1
 	}
 }
