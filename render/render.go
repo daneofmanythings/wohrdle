@@ -1,6 +1,8 @@
 package render
 
 import (
+	"strconv"
+
 	"github.com/gdamore/tcell/v2"
 	"gitlab.com/daneofmanythings/worhdle/states"
 )
@@ -15,13 +17,61 @@ func NewRenderer() *Renderer {
 	return &Renderer{
 		xSpacing: 4,
 		ySpacing: 2,
-		defStyle: tcell.StyleDefault,
 	}
+}
+
+func (r *Renderer) DrawMenu(s tcell.Screen, p *states.Parameters) {
+	s.Clear()
+	defer s.Show()
+
+	style := tcell.StyleDefault
+	width, _ := s.Size()
+
+	// static portions
+	welcome := "Welcome to WOHRDLE!"
+	instructions := "Please select word length and max guesses."
+	bindsMenu := "Navigate with arrow keys, 'wasd', or 'hjkl'. <return> to start."
+	bindsGame := "Type words. <esc> clears whole word. <ctrl-c> to go back."
+
+	welX := startingX(width, welcome)
+	insX := startingX(width, instructions)
+	menX := startingX(width, bindsMenu)
+	gamX := startingX(width, bindsGame)
+
+	drawTextWrapping(s, welX, r.ySpacing, welX+len(welcome), style, welcome)
+	drawTextWrapping(s, insX, 2*r.ySpacing, insX+len(instructions), style, instructions)
+	drawTextWrapping(s, menX, 7*r.ySpacing, menX+len(bindsMenu), style.Foreground(tcell.ColorGray), bindsMenu)
+	drawTextWrapping(s, gamX, 8*r.ySpacing, gamX+len(bindsGame), style.Foreground(tcell.ColorGray), bindsGame)
+
+	// dynamic portions
+	wordlength := "word length: "
+	maxguesses := "max guesses: "
+
+	worX := startingX(width, wordlength)
+	maxX := startingX(width, maxguesses)
+
+	wordlength += strconv.Itoa(p.WordLen)
+	maxguesses += strconv.Itoa(p.NumGuesses)
+
+	drawTextWrapping(s, worX, 4*r.ySpacing, worX+len(wordlength), determineMenuStyle(0, p), wordlength)
+	drawTextWrapping(s, maxX, 5*r.ySpacing, maxX+len(maxguesses), determineMenuStyle(1, p), maxguesses)
+}
+
+// TODO: This is leaky abstraction from the parameters struct
+func determineMenuStyle(curField int, p *states.Parameters) tcell.Style {
+	if curField == p.CurField {
+		return tcell.StyleDefault.Reverse(true)
+	}
+	return tcell.StyleDefault
+}
+
+func startingX(width int, str string) int {
+	return (width - len(str)) / 2
 }
 
 func (r *Renderer) DrawGameSession(s tcell.Screen, gs *states.GameSession) {
 	s.Clear()
-	// colorStyle := tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorGreen)
+	style := tcell.StyleDefault
 	defer s.Show()
 
 	width, height := s.Size()
@@ -35,7 +85,7 @@ func (r *Renderer) DrawGameSession(s tcell.Screen, gs *states.GameSession) {
 	for y := 0; y <= gs.NumGuesses; y++ {
 		for x := 0; x < gs.WordLen; x++ {
 			for n := 1; n < r.xSpacing; n++ {
-				s.SetContent(x*r.xSpacing+x1+n, y*r.ySpacing+y1, tcell.RuneHLine, nil, r.defStyle)
+				s.SetContent(x*r.xSpacing+x1+n, y*r.ySpacing+y1, tcell.RuneHLine, nil, style)
 			}
 		}
 	}
@@ -43,38 +93,38 @@ func (r *Renderer) DrawGameSession(s tcell.Screen, gs *states.GameSession) {
 	// draw vertical ticks
 	for x := 0; x <= gs.WordLen; x++ {
 		for y := 0; y < gs.NumGuesses; y++ {
-			s.SetContent(x*r.xSpacing+x1, y*r.ySpacing+y1+1, tcell.RuneVLine, nil, r.defStyle)
+			s.SetContent(x*r.xSpacing+x1, y*r.ySpacing+y1+1, tcell.RuneVLine, nil, style)
 		}
 	}
 
 	// draw corners
-	s.SetContent(x1, y1, tcell.RuneULCorner, nil, r.defStyle)
-	s.SetContent(x2, y1, tcell.RuneURCorner, nil, r.defStyle)
-	s.SetContent(x1, y2, tcell.RuneLLCorner, nil, r.defStyle)
-	s.SetContent(x2, y2, tcell.RuneLRCorner, nil, r.defStyle)
+	s.SetContent(x1, y1, tcell.RuneULCorner, nil, style)
+	s.SetContent(x2, y1, tcell.RuneURCorner, nil, style)
+	s.SetContent(x1, y2, tcell.RuneLLCorner, nil, style)
+	s.SetContent(x2, y2, tcell.RuneLRCorner, nil, style)
 
 	// draw tees
 	// top
 	for i := 1; i < gs.WordLen; i++ {
-		s.SetContent(i*r.xSpacing+x1, y1, tcell.RuneTTee, nil, r.defStyle)
+		s.SetContent(i*r.xSpacing+x1, y1, tcell.RuneTTee, nil, style)
 	}
 	// bottom
 	for i := 1; i < gs.WordLen; i++ {
-		s.SetContent(i*r.xSpacing+x1, y2, tcell.RuneBTee, nil, r.defStyle)
+		s.SetContent(i*r.xSpacing+x1, y2, tcell.RuneBTee, nil, style)
 	}
 	// left
 	for i := 1; i < gs.NumGuesses; i++ {
-		s.SetContent(x1, i*r.ySpacing+y1, tcell.RuneLTee, nil, r.defStyle)
+		s.SetContent(x1, i*r.ySpacing+y1, tcell.RuneLTee, nil, style)
 	}
 	// Right
 	for i := 1; i < gs.NumGuesses; i++ {
-		s.SetContent(x2, i*r.ySpacing+y1, tcell.RuneRTee, nil, r.defStyle)
+		s.SetContent(x2, i*r.ySpacing+y1, tcell.RuneRTee, nil, style)
 	}
 
 	// fill middle with pluses
 	for j := 1; j < gs.NumGuesses; j++ {
 		for i := 1; i < gs.WordLen; i++ {
-			s.SetContent(i*r.xSpacing+x1, j*r.ySpacing+y1, tcell.RunePlus, nil, r.defStyle)
+			s.SetContent(i*r.xSpacing+x1, j*r.ySpacing+y1, tcell.RunePlus, nil, style)
 		}
 	}
 

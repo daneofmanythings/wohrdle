@@ -2,6 +2,7 @@ package states
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -14,14 +15,74 @@ import (
 type Parameters struct {
 	WordLen    int
 	NumGuesses int
-	ValidWords []string
+	WordRepo   map[string][]string
+
+	CurField   int
+	MinWordLen int
+	MaxWordLen int
 }
 
 func NewParameters(wordLen int, numGuesses int, wordRepo map[string][]string) Parameters {
+	// finding the bounds of wordLen for menu wrapping
+	word_lengths := make([]int, 16)
+	for str_len := range wordRepo {
+		word_len, err := strconv.Atoi(str_len)
+		if err != nil {
+			panic("WHY ARE WE PANICKING HERE. SOMETHING HAS GONE TERRIBLY WRONG")
+		}
+		word_lengths = append(word_lengths, word_len)
+	}
+
 	return Parameters{
 		WordLen:    wordLen,
 		NumGuesses: numGuesses,
-		ValidWords: wordRepo[strconv.Itoa(wordLen)],
+		WordRepo:   wordRepo,
+		CurField:   0,
+		MinWordLen: slices.Min(word_lengths),
+		MaxWordLen: slices.Max(word_lengths),
+	}
+}
+
+func (p *Parameters) ValidWords() []string {
+	return p.WordRepo[strconv.Itoa(p.WordLen)]
+}
+
+// TODO: fix this abstraction. It will leak everywhere
+func (p *Parameters) IncCurField() {
+	p.CurField += 1
+	p.CurField %= 2 // change this to the number of fields to edit
+}
+
+func (p *Parameters) IncValAtCurField() {
+	if p.CurField == 0 {
+		if p.WordLen == p.MaxWordLen {
+			p.WordLen = 0
+		} else {
+			p.WordLen += 1
+		}
+	} else {
+		p.NumGuesses += 1
+	}
+}
+
+func (p *Parameters) DecCurField() {
+	p.CurField -= 1
+	p.CurField = int(math.Abs(float64(p.CurField)))
+	p.CurField %= 2 // change this to the number of fields to edit
+}
+
+func (p *Parameters) DecValAtCorField() {
+	if p.CurField == 0 {
+		if p.WordLen == p.MinWordLen {
+			p.WordLen = p.MaxWordLen
+		} else {
+			p.WordLen -= 1
+		}
+	} else {
+		if p.NumGuesses == 1 {
+			return
+		}
+		p.NumGuesses -= 1
 	}
 }
 
@@ -95,12 +156,11 @@ func NewGameSession(alertchan chan bool, params *Parameters) *GameSession {
 		WordLen:    params.WordLen,
 		NumGuesses: params.NumGuesses,
 		curIdx:     0,
-		validWords: params.ValidWords,
+		validWords: params.ValidWords(),
 		state:      ACTIVE,
 		SeenChars:  NewSeenCharRecord(),
 	}
-	// word := gs.validWords[rand.Intn(len(gs.validWords))]
-	word := "zahra"
+	word := gs.validWords[rand.Intn(len(gs.validWords))]
 	gs.targetWordAsString = strings.ToUpper(word)
 	gs.targetWordAsRunes = utils.RuneSliceToUpper([]rune(word))
 
