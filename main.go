@@ -83,8 +83,8 @@ func runGameSession(gs *states.GameSession, r *render.Renderer, s tcell.Screen, 
 }
 
 var (
-	upBinds    []rune = []rune{'j', 'J', 'w', 'W'}
-	downBinds  []rune = []rune{'k', 'K', 's', 'S'}
+	upBinds    []rune = []rune{'k', 'K', 'w', 'W'}
+	downBinds  []rune = []rune{'j', 'J', 's', 'S'}
 	leftBinds  []rune = []rune{'h', 'H', 'a', 'A'}
 	rightBinds []rune = []rune{'l', 'L', 'd', 'D'}
 )
