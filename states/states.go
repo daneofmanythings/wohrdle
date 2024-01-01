@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/gdamore/tcell/v2"
 	"gitlab.com/daneofmanythings/worhdle/utils"
 )
 
@@ -135,7 +136,6 @@ const (
 )
 
 type GameSession struct {
-	AlertChan  chan bool
 	Parameters Parameters
 
 	WordLen            int
@@ -152,9 +152,8 @@ type GameSession struct {
 	state GameState
 }
 
-func NewGameSession(alertchan chan bool, params *Parameters) *GameSession {
+func NewGameSession(params *Parameters) *GameSession {
 	gs := &GameSession{
-		AlertChan:  alertchan,
 		Parameters: *params,
 		WordLen:    params.WordLen,
 		NumGuesses: params.NumGuesses,
@@ -190,10 +189,6 @@ func (gs *GameSession) PushRune(r rune) {
 	gs.Grid[gs.curIdx] = append(gs.Grid[gs.curIdx], cell)
 
 	gs.HelpText = ""
-
-	go func() {
-		gs.AlertChan <- true
-	}()
 }
 
 func (gs *GameSession) PopRune() {
@@ -203,18 +198,11 @@ func (gs *GameSession) PopRune() {
 	gs.Grid[gs.curIdx] = gs.Grid[gs.curIdx][:len(gs.Grid[gs.curIdx])-1]
 
 	gs.HelpText = ""
-
-	go func() {
-		gs.AlertChan <- true
-	}()
 }
 
 func (gs *GameSession) ClearCurrentGuess() {
 	gs.Grid[gs.curIdx] = nil
 	gs.HelpText = ""
-	go func() {
-		gs.AlertChan <- true
-	}()
 }
 
 func (gs *GameSession) UpdateGamestate() {
@@ -238,10 +226,6 @@ func (gs *GameSession) UpdateGamestate() {
 		gs.state = LOSS
 		gs.HelpText = fmt.Sprintf("%s was the word! [c]ontinue | go b[a]ck", gs.targetWordAsString)
 	}
-
-	go func() {
-		gs.AlertChan <- true
-	}()
 }
 
 func (gs *GameSession) curGuessAsLowerString() string {
@@ -311,4 +295,44 @@ func (gs *GameSession) Reset() {
 	word := gs.validWords[rand.Intn(len(gs.validWords))]
 	gs.targetWordAsRunes = utils.RuneSliceToUpper([]rune(word))
 	gs.HelpText = ""
+}
+
+func (gs *GameSession) HandleEventKey(ev *tcell.EventKey) bool {
+	if gs.state == ACTIVE {
+		if shouldExit := gs.activeEventKey(ev); shouldExit {
+			return true
+		}
+	} else {
+		if shouldExit := gs.gameOverEventKey(ev); shouldExit {
+			return true
+		}
+	}
+	return false
+}
+
+func (gs *GameSession) gameOverEventKey(ev *tcell.EventKey) bool {
+	if ev.Rune() == 'c' || ev.Rune() == 'C' {
+		gs.Reset()
+		return false
+	} else if ev.Rune() == 'a' || ev.Rune() == 'A' {
+		return true
+	}
+	// fallthrough. nothing happens
+	return false
+}
+
+func (gs *GameSession) activeEventKey(ev *tcell.EventKey) bool {
+	if ev.Key() == tcell.KeyCtrlC {
+		return true
+	} else if ev.Key() == tcell.KeyEscape {
+		gs.ClearCurrentGuess()
+	} else if utils.RuneIsAlpha(ev.Rune()) {
+		gs.PushRune(ev.Rune())
+	} else if ev.Key() == tcell.KeyBackspace2 || ev.Key() == tcell.KeyBackspace {
+		gs.PopRune()
+	} else if ev.Key() == tcell.KeyEnter {
+		gs.UpdateGamestate()
+	}
+	// fallthrough. nothing happens
+	return false
 }

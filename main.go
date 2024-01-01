@@ -13,72 +13,42 @@ import (
 const wordRepoPath string = "./static/words.json"
 
 func main() {
-	s, err := render.CreateScreen()
+	screen, err := render.CreateScreen()
 	if err != nil {
 		panic(err)
 	}
 	renderer := render.NewRenderer()
-	wordRepo, _ := utils.LoadWordRepoFromJSON(wordRepoPath)
+	wordRepo, err := utils.LoadWordRepoFromJSON(wordRepoPath)
+	if err != nil {
+		panic(err)
+	}
 	parameters := states.NewParameters(5, 6, wordRepo.Words)
-	renderAlert := make(chan bool)
 
-	parameters = *runMainMenu(renderer, s, &parameters)
+	parameters = *runMainMenu(renderer, screen, &parameters)
 
-	gs := states.NewGameSession(renderAlert, &parameters)
-	runGameSession(gs, renderer, s, &renderAlert)
+	gs := states.NewGameSession(&parameters)
+
+	// the application loop
+	for {
+		if shouldRunMenu := runGameSession(gs, renderer, screen); shouldRunMenu {
+			parameters = *runMainMenu(renderer, screen, &parameters)
+			gs = states.NewGameSession(&parameters)
+		}
+	}
 }
 
-func runGameSession(gs *states.GameSession, r *render.Renderer, s tcell.Screen, renderAlert *chan bool) bool {
-	go func() {
-		for {
-			// The regular game loop
-			switch ev := s.PollEvent().(type) {
-			case *tcell.EventResize:
-				s.Sync()
-				*renderAlert <- true
-			case *tcell.EventKey:
-				if ev.Key() == tcell.KeyCtrlC {
-					gs = states.NewGameSession(*renderAlert, runMainMenu(r, s, &gs.Parameters))
-					*renderAlert <- true
-				} else if (ev.Key() == 'c' || ev.Key() == 'C') && gs.IsGameOver() {
-					gs = states.NewGameSession(*renderAlert, &gs.Parameters)
-					continue
-				} else if ev.Key() == tcell.KeyEscape {
-					gs.ClearCurrentGuess()
-				} else if utils.RuneIsAlpha(ev.Rune()) {
-					// Logic to continue game or rerun the menu
-					if gs.IsGameOver() {
-						if ev.Rune() == 'c' || ev.Rune() == 'C' {
-							gs.Reset()
-							*renderAlert <- true
-							continue
-						} else if ev.Rune() == 'a' || ev.Rune() == 'A' {
-							gs = states.NewGameSession(*renderAlert, runMainMenu(r, s, &gs.Parameters))
-							*renderAlert <- true
-						}
-					} else {
-						gs.PushRune(ev.Rune())
-					}
-				} else if ev.Key() == tcell.KeyBackspace2 || ev.Key() == tcell.KeyBackspace {
-					if gs.IsGameOver() {
-						continue
-					}
-					gs.PopRune()
-				} else if ev.Key() == tcell.KeyEnter {
-					if gs.IsGameOver() {
-						continue
-					}
-					gs.UpdateGamestate()
-					*renderAlert <- true
-				}
+func runGameSession(gs *states.GameSession, r *render.Renderer, s tcell.Screen) bool {
+	for {
+		// the game loop
+		r.DrawGameSession(s, gs)
+		switch ev := s.PollEvent().(type) {
+		case *tcell.EventResize:
+			s.Sync()
+		case *tcell.EventKey:
+			if shouldExit := gs.HandleEventKey(ev); shouldExit {
+				return true
 			}
 		}
-	}()
-
-	// The draw loop. blocks until a render alert is sent
-	for {
-		r.DrawGameSession(s, gs)
-		<-*renderAlert
 	}
 }
 
@@ -91,6 +61,7 @@ var (
 
 func runMainMenu(r *render.Renderer, s tcell.Screen, p *states.Parameters) *states.Parameters {
 	for {
+		// the menu loop
 		r.DrawMenu(s, p)
 
 		switch ev := s.PollEvent().(type) {
@@ -98,6 +69,7 @@ func runMainMenu(r *render.Renderer, s tcell.Screen, p *states.Parameters) *stat
 			s.Sync()
 			continue
 		case *tcell.EventKey:
+			// p.HandleKeyPress(ev)
 			if ev.Key() == tcell.KeyUp || slices.Contains(upBinds, ev.Rune()) {
 				p.IncCurField()
 			} else if ev.Key() == tcell.KeyDown || slices.Contains(downBinds, ev.Rune()) {
