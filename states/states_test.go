@@ -12,8 +12,6 @@ const (
 	testWordWrong   string = "world"
 )
 
-var alertChan = make(chan bool)
-
 func testnewGameSession() *GameSession {
 	vw := map[string][]string{}
 	int_str := strconv.Itoa(len(testWordCorrect))
@@ -27,7 +25,7 @@ func testnewGameSession() *GameSession {
 		5,
 		5,
 	}
-	return NewGameSession(alertChan, &p)
+	return NewGameSession(&p)
 }
 
 func TestIsValidWord(t *testing.T) {
