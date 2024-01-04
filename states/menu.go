@@ -1,7 +1,6 @@
 package states
 
 import (
-	"math"
 	"os"
 	"slices"
 	"strconv"
@@ -9,19 +8,32 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-type MenuSession struct{}
+const (
+	MAX_GUESSES int = 20
+	MAX_FAILS   int = 20
+)
+
+type Field struct {
+	Name  string
+	Value int
+}
+
+var defaultFields []Field = []Field{
+	{"word length", 5},
+	{"num guesses", 6},
+	{"num failed words", 5},
+}
 
 type Parameters struct {
-	WordLen    int
-	NumGuesses int
-	WordRepo   map[string][]string
+	Fields        []Field
+	CurEditingIdx int
 
-	CurField   int
+	WordRepo   map[string][]string
 	MinWordLen int
 	MaxWordLen int
 }
 
-func NewParameters(wordLen int, numGuesses int, wordRepo map[string][]string) *Parameters {
+func NewDefaultParameters(wordRepo map[string][]string) *Parameters {
 	// finding the bounds of wordLen for menu wrapping
 	word_lengths := []int{}
 	for str_len := range wordRepo {
@@ -33,58 +45,86 @@ func NewParameters(wordLen int, numGuesses int, wordRepo map[string][]string) *P
 	}
 
 	return &Parameters{
-		WordLen:    wordLen,
-		NumGuesses: numGuesses,
-		WordRepo:   wordRepo,
-		CurField:   0,
-		MinWordLen: slices.Min(word_lengths),
-		MaxWordLen: slices.Max(word_lengths),
+		Fields:        defaultFields,
+		CurEditingIdx: 0,
+		WordRepo:      wordRepo,
+		MinWordLen:    slices.Min(word_lengths),
+		MaxWordLen:    slices.Max(word_lengths),
 	}
 }
 
+// Field[0] >> word length
+// Field[1] >> number of guesses
+// Field[2] >> failed word attempts
+
 func (p *Parameters) ValidWords() []string {
-	return p.WordRepo[strconv.Itoa(p.WordLen)]
+	return p.WordRepo[strconv.Itoa(p.Fields[0].Value)]
 }
 
-// TODO: fix this abstraction. It will leak everywhere
 func (p *Parameters) IncCurField() {
-	p.CurField += 1
-	p.CurField %= 2 // change this to the number of fields to edit
+	p.CurEditingIdx -= 1
+	// modulus in go doesnt wrap negatives correctly
+	if p.CurEditingIdx < 0 {
+		p.CurEditingIdx = len(p.Fields) - 1
+	}
 }
 
+// This must be updated when menu items are added
 func (p *Parameters) IncValAtCurField() {
-	if p.CurField == 0 {
-		if p.WordLen == p.MaxWordLen {
-			p.WordLen = 1
+	switch p.CurEditingIdx {
+	case 0: // word length
+		val := &p.Fields[0].Value
+		if *val == p.MaxWordLen {
+			*val = 1
 		} else {
-			p.WordLen += 1
+			*val += 1
 		}
-	} else {
-		if p.NumGuesses == 20 {
-			return
+	case 1: // number of guesses
+		val := &p.Fields[1].Value
+		if *val == MAX_GUESSES {
+			*val = 1
+		} else {
+			*val += 1
 		}
-		p.NumGuesses += 1
+	case 2: // number of failed words
+		val := &p.Fields[2].Value
+		if *val == MAX_FAILS {
+			*val = 1
+		} else {
+			*val += 1
+		}
 	}
 }
 
 func (p *Parameters) DecCurField() {
-	p.CurField -= 1
-	p.CurField = int(math.Abs(float64(p.CurField)))
-	p.CurField %= 2 // change this to the number of fields to edit
+	p.CurEditingIdx += 1
+	p.CurEditingIdx %= len(p.Fields)
 }
 
+// This must be updated when a menu item is added
 func (p *Parameters) DecValAtCorField() {
-	if p.CurField == 0 {
-		if p.WordLen == p.MinWordLen {
-			p.WordLen = p.MaxWordLen
+	switch p.CurEditingIdx {
+	case 0: // word length
+		val := &p.Fields[0].Value
+		if *val == p.MinWordLen {
+			*val = p.MaxWordLen
 		} else {
-			p.WordLen -= 1
+			*val -= 1
 		}
-	} else {
-		if p.NumGuesses == 1 {
-			return
+	case 1: // number of guesses
+		val := &p.Fields[1].Value
+		if *val == 1 {
+			*val = MAX_GUESSES
+		} else {
+			*val -= 1
 		}
-		p.NumGuesses -= 1
+	case 2: // number of failed words
+		val := &p.Fields[2].Value
+		if *val == 1 {
+			*val = MAX_FAILS
+		} else {
+			*val -= 1
+		}
 	}
 }
 

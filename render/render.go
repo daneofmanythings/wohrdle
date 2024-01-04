@@ -25,41 +25,39 @@ func (r *Renderer) DrawMenu(s tcell.Screen, p *states.Parameters) {
 	defer s.Show()
 
 	style := tcell.StyleDefault
+	style_faded := style.Foreground(tcell.ColorGrey)
 	width, _ := s.Size()
 
-	// static portions
 	welcome := "Welcome to WOHRDLE!"
 	instructions := "Please select word length and max guesses."
-	bindsMenu := "Navigate with arrow keys, 'wasd', or 'hjkl'. <return> to start."
-	bindsGame := "Type words. <esc> clears whole word. <ctrl-c> to go back."
-
 	welX := startingX(width, welcome)
 	insX := startingX(width, instructions)
-	menX := startingX(width, bindsMenu)
-	gamX := startingX(width, bindsGame)
-
 	drawTextWrapping(s, welX, r.ySpacing, welX+len(welcome), style, welcome)
 	drawTextWrapping(s, insX, 2*r.ySpacing, insX+len(instructions), style, instructions)
-	drawTextWrapping(s, menX, 7*r.ySpacing, menX+len(bindsMenu), style.Foreground(tcell.ColorGray), bindsMenu)
-	drawTextWrapping(s, gamX, 8*r.ySpacing, gamX+len(bindsGame), style.Foreground(tcell.ColorGray), bindsGame)
 
-	// dynamic portions
-	wordlength := "word length: "
-	maxguesses := "max guesses: "
+	starting_dynamic_offset := 4
 
-	worX := startingX(width, wordlength)
-	maxX := startingX(width, maxguesses)
+	// dynamic portion ------
+	for i := range p.Fields {
+		title := p.Fields[i].Name
+		title = title + ": " + strconv.Itoa(p.Fields[i].Value)
+		x_start := startingX(width, title)
+		x_end := x_start + len(title)
+		drawTextWrapping(s, x_start, (starting_dynamic_offset+i)*r.ySpacing, x_end, determineMenuStyle(i, p), title)
+	}
+	// -------
 
-	wordlength += strconv.Itoa(p.WordLen)
-	maxguesses += strconv.Itoa(p.NumGuesses)
-
-	drawTextWrapping(s, worX, 4*r.ySpacing, worX+len(wordlength), determineMenuStyle(0, p), wordlength)
-	drawTextWrapping(s, maxX, 5*r.ySpacing, maxX+len(maxguesses), determineMenuStyle(1, p), maxguesses)
+	help_text_offset := starting_dynamic_offset + len(p.Fields) + 1
+	bindsMenu := "Navigate with arrow keys, 'wasd', or 'hjkl'. <return> to start."
+	bindsGame := "Type words. <esc> clears whole word. <ctrl-c> to go back."
+	menX := startingX(width, bindsMenu)
+	gamX := startingX(width, bindsGame)
+	drawTextWrapping(s, menX, help_text_offset*r.ySpacing, menX+len(bindsMenu), style_faded, bindsMenu)
+	drawTextWrapping(s, gamX, (help_text_offset+1)*r.ySpacing, gamX+len(bindsGame), style_faded, bindsGame)
 }
 
-// TODO: This is leaky abstraction from the parameters struct
-func determineMenuStyle(curField int, p *states.Parameters) tcell.Style {
-	if curField == p.CurField {
+func determineMenuStyle(curDisplayingIdx int, p *states.Parameters) tcell.Style {
+	if curDisplayingIdx == p.CurEditingIdx {
 		return tcell.StyleDefault.Reverse(true)
 	}
 	return tcell.StyleDefault

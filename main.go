@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	parameters := states.NewParameters(5, 6, wordRepo.Words)
+	parameters := states.NewDefaultParameters(wordRepo.Words)
 
 	runMainMenu(parameters, renderer, screen)
 

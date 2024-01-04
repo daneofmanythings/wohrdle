@@ -20,8 +20,9 @@ func testnewGameSession() *GameSession {
 	p := Parameters{
 		5,
 		6,
-		vw,
+		[]string{"WordLen", "NumGuesses"},
 		0,
+		vw,
 		5,
 		5,
 	}

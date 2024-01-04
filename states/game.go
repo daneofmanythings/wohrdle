@@ -59,8 +59,10 @@ const (
 type GameSession struct {
 	Parameters Parameters
 
-	WordLen            int
-	NumGuesses         int
+	WordLen     int
+	NumGuesses  int
+	MaxNumFails int
+
 	targetWordAsRunes  []rune
 	targetWordAsString string
 
@@ -75,13 +77,14 @@ type GameSession struct {
 
 func NewGameSession(params *Parameters) *GameSession {
 	gs := &GameSession{
-		Parameters: *params,
-		WordLen:    params.WordLen,
-		NumGuesses: params.NumGuesses,
-		curIdx:     0,
-		validWords: params.ValidWords(),
-		state:      ACTIVE,
-		SeenChars:  NewSeenCharRecord(),
+		Parameters:  *params,
+		WordLen:     params.Fields[0].Value,
+		NumGuesses:  params.Fields[1].Value,
+		MaxNumFails: params.Fields[2].Value,
+		curIdx:      0,
+		validWords:  params.ValidWords(),
+		state:       ACTIVE,
+		SeenChars:   NewSeenCharRecord(),
 	}
 	word := gs.validWords[rand.Intn(len(gs.validWords))]
 	gs.targetWordAsString = strings.ToUpper(word)
@@ -128,24 +131,34 @@ func (gs *GameSession) ClearCurrentGuess() {
 
 func (gs *GameSession) UpdateGamestate() {
 	gs.HelpText = ""
+	failed_entry_loss := "Out of failed entries. %s was the word! [c]ontinue | go b[a]ck"
+	failed_entry := "%s not in word list. %d failed entries left"
+	victory := "%s is correct! [c]ontinue | go b[a]ck"
+	guess_loss := "%s was the word! [c]ontinue | go b[a]ck"
 
 	if !gs.isValidWord() {
 		if len(gs.curGuessAsLowerString()) == gs.WordLen {
-			gs.HelpText = fmt.Sprintf("%s not in word list", gs.curGuessAsUpperString())
+			gs.MaxNumFails -= 1
+			if gs.MaxNumFails == 0 {
+				gs.state = LOSS
+				gs.HelpText = fmt.Sprintf(failed_entry_loss, gs.targetWordAsString)
+			} else {
+				gs.HelpText = fmt.Sprintf(failed_entry, gs.curGuessAsUpperString(), gs.MaxNumFails)
+			}
 		}
 		return
 	}
 
 	if gs.IsWinner() {
 		gs.state = VICTORY
-		gs.HelpText = fmt.Sprintf("%s is correct! [c]ontinue | go b[a]ck", gs.curGuessAsUpperString())
+		gs.HelpText = fmt.Sprintf(victory, gs.curGuessAsUpperString())
 	}
 
 	gs.finalizeCurRow()
 
 	if gs.curIdx == gs.NumGuesses {
 		gs.state = LOSS
-		gs.HelpText = fmt.Sprintf("%s was the word! [c]ontinue | go b[a]ck", gs.targetWordAsString)
+		gs.HelpText = fmt.Sprintf(guess_loss, gs.targetWordAsString)
 	}
 }
 
@@ -206,6 +219,7 @@ func (gs *GameSession) IsGameOver() bool {
 func (gs *GameSession) Reset() {
 	gs.curIdx = 0
 	gs.state = ACTIVE
+	gs.MaxNumFails = gs.Parameters.Fields[2].Value // TODO: update this if the position of max fails changes
 	for i := range gs.Grid {
 		gs.Grid[i] = nil
 	}
@@ -235,7 +249,7 @@ func (gs *GameSession) gameOverEventKey(ev *tcell.EventKey) bool {
 	if ev.Rune() == 'c' || ev.Rune() == 'C' {
 		gs.Reset()
 		return false
-	} else if ev.Rune() == 'a' || ev.Rune() == 'A' {
+	} else if ev.Rune() == 'a' || ev.Rune() == 'A' || ev.Key() == tcell.KeyCtrlC {
 		return true
 	}
 	// fallthrough. nothing happens
