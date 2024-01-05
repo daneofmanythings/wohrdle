@@ -1,4 +1,4 @@
-module gitlab.com/daneofmanythings/worhdle
+module gitlab.com/daneofmanythings/wohrdle
 
 go 1.21.4
 

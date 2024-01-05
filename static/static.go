@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"unicode"
 
-	"gitlab.com/daneofmanythings/worhdle/utils"
+	"gitlab.com/daneofmanythings/wohrdle/utils"
 )
 
 // TODO: fix this. It is hella error prone

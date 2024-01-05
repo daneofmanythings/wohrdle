@@ -8,7 +8,7 @@ import (
 	"unicode"
 
 	"github.com/gdamore/tcell/v2"
-	"gitlab.com/daneofmanythings/worhdle/utils"
+	"gitlab.com/daneofmanythings/wohrdle/utils"
 )
 
 type CellState int
@@ -135,7 +135,7 @@ func (gs *GameSession) UpdateGamestate() {
 	failed_entry := "%s not in word list. %d failed entries left"
 	victory := "%s is correct! [c]ontinue | go b[a]ck"
 	guess_loss := "%s was the word! [c]ontinue | go b[a]ck"
-	gave_up_loss := "gave up. %s was the word! [c]ontinue | go b[a]ck"
+	gave_up_loss := "Aborted. [c]ontinue | go b[a]ck"
 
 	if gs.state == LOSS {
 		gs.HelpText = fmt.Sprintf(gave_up_loss, gs.targetWordAsString)

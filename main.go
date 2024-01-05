@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/gdamore/tcell/v2"
-	"gitlab.com/daneofmanythings/worhdle/render"
-	"gitlab.com/daneofmanythings/worhdle/states"
-	"gitlab.com/daneofmanythings/worhdle/utils"
+	"gitlab.com/daneofmanythings/wohrdle/render"
+	"gitlab.com/daneofmanythings/wohrdle/states"
+	"gitlab.com/daneofmanythings/wohrdle/utils"
 )
 
 const wordRepoPath string = "./static/words.json"

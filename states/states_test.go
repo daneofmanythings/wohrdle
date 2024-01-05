@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"testing"
 
-	"gitlab.com/daneofmanythings/worhdle/utils"
+	"gitlab.com/daneofmanythings/wohrdle/utils"
 )
 
 const (

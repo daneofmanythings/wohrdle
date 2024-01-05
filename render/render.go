@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/gdamore/tcell/v2"
-	"gitlab.com/daneofmanythings/worhdle/states"
+	"gitlab.com/daneofmanythings/wohrdle/states"
 )
 
 type Renderer struct {
