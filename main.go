@@ -24,17 +24,14 @@ func main() {
 	}
 	parameters := states.NewDefaultParameters(wordRepo.Words)
 
-	runMainMenu(parameters, renderer, screen)
-
-	gs := states.NewGameSession(parameters)
-
 	// the application loop
 	for {
-		if shouldRunMenu := runGameSession(gs, renderer, screen); shouldRunMenu {
-			if shouldQuit := runMainMenu(parameters, renderer, screen); shouldQuit {
+		runMainMenu(parameters, renderer, screen)
+		gs := states.NewGameSession(parameters)
+		for {
+			if shouldRunMenu := runGameSession(gs, renderer, screen); shouldRunMenu {
 				break
 			}
-			gs = states.NewGameSession(parameters)
 		}
 	}
 }
@@ -56,7 +53,7 @@ func runGameSession(gs *states.GameSession, r *render.Renderer, s tcell.Screen) 
 	}
 }
 
-func runMainMenu(p *states.Parameters, r *render.Renderer, s tcell.Screen) bool {
+func runMainMenu(p *states.Parameters, r *render.Renderer, s tcell.Screen) {
 	for {
 		// the menu loop
 		r.DrawMenu(s, p)
@@ -66,7 +63,7 @@ func runMainMenu(p *states.Parameters, r *render.Renderer, s tcell.Screen) bool 
 			s.Sync()
 		case *tcell.EventKey:
 			if shouldReturn := p.HandleEventKey(ev, s); shouldReturn {
-				return true
+				return
 			}
 		default:
 			// nothing

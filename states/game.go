@@ -135,6 +135,11 @@ func (gs *GameSession) UpdateGamestate() {
 	failed_entry := "%s not in word list. %d failed entries left"
 	victory := "%s is correct! [c]ontinue | go b[a]ck"
 	guess_loss := "%s was the word! [c]ontinue | go b[a]ck"
+	gave_up_loss := "gave up. %s was the word! [c]ontinue | go b[a]ck"
+
+	if gs.state == LOSS {
+		gs.HelpText = fmt.Sprintf(gave_up_loss, gs.targetWordAsString)
+	}
 
 	if !gs.isValidWord() {
 		if len(gs.curGuessAsLowerString()) == gs.WordLen {
@@ -212,10 +217,6 @@ func (gs *GameSession) IsWinner() bool {
 	return true
 }
 
-func (gs *GameSession) IsGameOver() bool {
-	return gs.state != ACTIVE
-}
-
 func (gs *GameSession) Reset() {
 	gs.curIdx = 0
 	gs.state = ACTIVE
@@ -228,6 +229,7 @@ func (gs *GameSession) Reset() {
 	}
 
 	word := gs.validWords[rand.Intn(len(gs.validWords))]
+	gs.targetWordAsString = strings.ToUpper(word)
 	gs.targetWordAsRunes = utils.RuneSliceToUpper([]rune(word))
 	gs.HelpText = ""
 }
@@ -258,7 +260,8 @@ func (gs *GameSession) gameOverEventKey(ev *tcell.EventKey) bool {
 
 func (gs *GameSession) activeEventKey(ev *tcell.EventKey) bool {
 	if ev.Key() == tcell.KeyCtrlC {
-		return true
+		gs.state = LOSS
+		gs.UpdateGamestate()
 	} else if ev.Key() == tcell.KeyEscape {
 		gs.ClearCurrentGuess()
 	} else if utils.RuneIsAlpha(ev.Rune()) {
