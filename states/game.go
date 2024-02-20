@@ -2,6 +2,7 @@ package states
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"slices"
 	"strings"
@@ -25,6 +26,10 @@ var cellStates []CellState = []CellState{DEFAULT, CORRECT, PARTIAL, USED}
 type Cell struct {
 	Char  rune
 	state CellState
+}
+
+func (c *Cell) isEqualTo(other Cell) bool {
+	return c.Char == other.Char && c.state == other.state
 }
 
 func (c *Cell) SetState(state CellState) {
@@ -125,6 +130,11 @@ func (gs *GameSession) PopRune() {
 	gs.HelpText = ""
 }
 
+// helper function for debugging
+func (gs *GameSession) getCurrentRow() []Cell {
+	return gs.Grid[gs.curIdx]
+}
+
 func (gs *GameSession) ClearCurrentGuess() {
 	gs.Grid[gs.curIdx] = nil
 	gs.HelpText = ""
@@ -206,12 +216,18 @@ func (gs *GameSession) finalizeCurRow() {
 			gs.SeenChars[idx].SetState(USED)
 		}
 	}
+	log.Printf("word: %s, countByRune: %v", gs.targetWordAsString, countByRune)
+	log.Printf("current row: %v", gs.getCurrentRow())
 	// Second pass to remove potential false positives of PARTIALS when they have
 	// all been correctly guessed by comparing the remaining unfound CORRECTS
 	for i := range gs.Grid[gs.curIdx] {
 		cell := &gs.Grid[gs.curIdx][i]
 		idx := utils.Find[rune](AllRunes, cell.Char) // finding the location in the seen char tracker
-		if cell.state == PARTIAL && countByRune[cell.Char] < 1 {
+		if cell.state != PARTIAL {
+			continue
+		}
+		if countByRune[cell.Char] < 1 {
+			log.Printf("changing state of cell at: %d to USED, word=%s", i, gs.targetWordAsString)
 			cell.SetState(USED)
 			gs.SeenChars[idx].SetState(CORRECT)
 		}
@@ -222,8 +238,8 @@ func (gs *GameSession) finalizeCurRow() {
 
 func (gs *GameSession) countByRuneForCurRow() map[rune]int {
 	countByRune := map[rune]int{}
-	for i := range gs.Grid[gs.curIdx] {
-		countByRune[gs.Grid[gs.curIdx][i].Char] += 1
+	for i := range gs.targetWordAsRunes {
+		countByRune[gs.targetWordAsRunes[i]] += 1
 	}
 	return countByRune
 }
