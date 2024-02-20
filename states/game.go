@@ -87,6 +87,7 @@ func NewGameSession(params *Parameters) *GameSession {
 		SeenChars:   NewSeenCharRecord(),
 	}
 	word := gs.validWords[rand.Intn(len(gs.validWords))]
+	// word := "volts"
 	gs.targetWordAsString = strings.ToUpper(word)
 	gs.targetWordAsRunes = utils.RuneSliceToUpper([]rune(word))
 
@@ -188,10 +189,13 @@ func (gs *GameSession) isValidWord() bool {
 }
 
 func (gs *GameSession) finalizeCurRow() {
+	countByRune := gs.countByRuneForCurRow()
+	// First pass
 	for i := range gs.Grid[gs.curIdx] {
 		cell := &gs.Grid[gs.curIdx][i]
-		idx := utils.Find[rune](AllRunes, cell.Char) // finding the location in the char tracker
+		idx := utils.Find[rune](AllRunes, cell.Char) // finding the location in the seen char tracker
 		if cell.Char == gs.targetWordAsRunes[i] {
+			countByRune[cell.Char] -= 1
 			cell.SetState(CORRECT)
 			gs.SeenChars[idx].SetState(CORRECT)
 		} else if slices.Contains(gs.targetWordAsRunes, cell.Char) {
@@ -202,7 +206,26 @@ func (gs *GameSession) finalizeCurRow() {
 			gs.SeenChars[idx].SetState(USED)
 		}
 	}
+	// Second pass to remove potential false positives of PARTIALS when they have
+	// all been correctly guessed by comparing the remaining unfound CORRECTS
+	for i := range gs.Grid[gs.curIdx] {
+		cell := &gs.Grid[gs.curIdx][i]
+		idx := utils.Find[rune](AllRunes, cell.Char) // finding the location in the seen char tracker
+		if cell.state == PARTIAL && countByRune[cell.Char] < 1 {
+			cell.SetState(USED)
+			gs.SeenChars[idx].SetState(CORRECT)
+		}
+		countByRune[cell.Char] -= 1
+	}
 	gs.curIdx += 1
+}
+
+func (gs *GameSession) countByRuneForCurRow() map[rune]int {
+	countByRune := map[rune]int{}
+	for i := range gs.Grid[gs.curIdx] {
+		countByRune[gs.Grid[gs.curIdx][i].Char] += 1
+	}
+	return countByRune
 }
 
 func (gs *GameSession) IsWinner() bool {
