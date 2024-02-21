@@ -2,7 +2,6 @@ package states
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"slices"
 	"strings"
@@ -149,7 +148,7 @@ func (gs *GameSession) UpdateGamestate() {
 	gave_up_loss := "Aborted. [c]ontinue | go b[a]ck"
 
 	if gs.state == LOSS {
-		gs.HelpText = fmt.Sprintf(gave_up_loss, gs.targetWordAsString)
+		gs.HelpText = fmt.Sprint(gave_up_loss)
 	}
 
 	if !gs.isValidWord() {
@@ -216,8 +215,6 @@ func (gs *GameSession) finalizeCurRow() {
 			gs.SeenChars[idx].SetState(USED)
 		}
 	}
-	log.Printf("word: %s, countByRune: %v", gs.targetWordAsString, countByRune)
-	log.Printf("current row: %v", gs.getCurrentRow())
 	// Second pass to remove potential false positives of PARTIALS when they have
 	// all been correctly guessed by comparing the remaining unfound CORRECTS
 	for i := range gs.Grid[gs.curIdx] {
@@ -227,7 +224,6 @@ func (gs *GameSession) finalizeCurRow() {
 			continue
 		}
 		if countByRune[cell.Char] < 1 {
-			log.Printf("changing state of cell at: %d to USED, word=%s", i, gs.targetWordAsString)
 			cell.SetState(USED)
 			gs.SeenChars[idx].SetState(CORRECT)
 		}

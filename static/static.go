@@ -2,6 +2,7 @@ package static
 
 import (
 	"bufio"
+	_ "embed"
 	"encoding/json"
 	"log"
 	"os"
@@ -10,6 +11,11 @@ import (
 
 	"gitlab.com/daneofmanythings/wohrdle/utils"
 )
+
+//go:embed "words.json"
+var WordRepoBytes []byte
+
+// WARN: The rest of this module is only used to clean the linux word list.
 
 // TODO: fix this. It is hella error prone
 const (

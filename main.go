@@ -1,9 +1,12 @@
 package main
 
 import (
+	_ "embed"
+
 	"github.com/gdamore/tcell/v2"
 	"gitlab.com/daneofmanythings/wohrdle/render"
 	"gitlab.com/daneofmanythings/wohrdle/states"
+	"gitlab.com/daneofmanythings/wohrdle/static"
 	"gitlab.com/daneofmanythings/wohrdle/utils"
 )
 
@@ -18,7 +21,8 @@ func main() {
 
 	renderer := render.NewRenderer()
 
-	wordRepo, err := utils.LoadWordRepoFromJSON(wordRepoPath)
+	// wordRepo, err := utils.LoadWordRepoFromJSON(wordRepoPath)
+	wordRepo, err := utils.LoadEmbeddedWordRepo(static.WordRepoBytes)
 	if err != nil {
 		panic(err)
 	}

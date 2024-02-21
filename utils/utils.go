@@ -51,3 +51,14 @@ func LoadWordRepoFromJSON(path string) (WordRepository, error) {
 
 	return wr, nil
 }
+
+func LoadEmbeddedWordRepo(bytes []byte) (WordRepository, error) {
+	wr := WordRepository{}
+
+	err := json.Unmarshal(bytes, &wr)
+	if err != nil {
+		return WordRepository{}, err
+	}
+
+	return wr, nil
+}
