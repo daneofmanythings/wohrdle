@@ -6,7 +6,7 @@
 
 ## Setup
 - Install [golang](https://go.dev/doc/install)
-- *Optional* Navigate to your desired location to hold the repository. 
+- **[Optional]** Navigate to your desired location to hold the repository. Ex:
 ```
 cd $HOME/Downloads/
 ```
@@ -17,26 +17,36 @@ git clone https://github.com/daneofmanythings/wohrdle
 
 
 ## Usage
-- *Recommended* Install the binary into your \$GOBIN (\$GOPATH/bin) to expose it
+There are three options for how to use the app.
+1. **[Recommended]** Install the binary into your \$GOBIN (\$GOPATH/bin) to expose it
 as a command in your terminal.
 ```
 go install
 ```
-You can then run it from anywhere with:
+You can then run it from anywhere with: ` wohrdle `
+
+2. If you want to build the binary but not commit it to your path.
 ```
-wohrdle
+go build
 ```
-- If you don't want to save the built binary, run this from the project root
+Then to run the program enter the full path to where you cloned the repository. Ex:
+```
+$HOME/Downloads/wohrdle
+```
+or `./wohrdle` from the project root.
+
+3. If you don't want to save the built binary, run this from the project root
 to run the program as a one-off.
 ```
 go run main.go
 ```
-- If you want to built the binary but not commit it to your path.
+
+### Note:
+The `build` and `install` commands default the binary name to the go package name.
+In cases 1 and 2, you may specify a different name for the binary with the `-o` flag. 
+Ex:
 ```
-go build
+go install -o newname 
 ```
-Then to run the program, run this from the project root, or enter the full path
-to where you cloned the repository.
-```
-./wohrdle
-```
+
+which can then be ran with `newname`
