@@ -66,6 +66,7 @@ type GameSession struct {
 	WordLen     int
 	NumGuesses  int
 	MaxNumFails int
+	HardMode    int
 
 	targetWordAsRunes  []rune
 	targetWordAsString string
@@ -85,6 +86,7 @@ func NewGameSession(params *Parameters) *GameSession {
 		WordLen:     params.Fields[0].Value,
 		NumGuesses:  params.Fields[1].Value,
 		MaxNumFails: params.Fields[2].Value,
+		HardMode:    params.Fields[3].Value,
 		curIdx:      0,
 		validWords:  params.ValidWords(),
 		state:       ACTIVE,
@@ -146,9 +148,17 @@ func (gs *GameSession) UpdateGamestate() {
 	victory := "%s is correct! [c]ontinue | go b[a]ck"
 	guess_loss := "%s was the word! [c]ontinue | go b[a]ck"
 	gave_up_loss := "Aborted. [c]ontinue | go b[a]ck"
+	hardmode_violated := "Hard-mode violated. Try again."
 
 	if gs.state == LOSS {
 		gs.HelpText = fmt.Sprint(gave_up_loss)
+	}
+
+	if gs.HardMode == 1 {
+		if !gs.isHardModeSatisfied() {
+			gs.HelpText = hardmode_violated
+			return
+		}
 	}
 
 	if !gs.isValidWord() {
@@ -193,12 +203,21 @@ func (gs *GameSession) curGuessAsUpperString() string {
 	return word
 }
 
+func (gs *GameSession) isHardModeSatisfied() bool {
+	if gs.curIdx == 0 {
+		return true
+	}
+	return true // TODO: implement the hardmode check.
+}
+
 func (gs *GameSession) isValidWord() bool {
 	return slices.Contains(gs.validWords, gs.curGuessAsLowerString())
 }
 
 func (gs *GameSession) finalizeCurRow() {
-	countByRune := gs.countByRuneForCurRow()
+	// This populates the cells in the current row with thier correct stylings for the renderer
+
+	countByRune := gs.countByRuneForCurRow() // This is to track repeat letters from ISSUE#1
 	// First pass
 	for i := range gs.Grid[gs.curIdx] {
 		cell := &gs.Grid[gs.curIdx][i]
@@ -255,7 +274,7 @@ func (gs *GameSession) IsWinner() bool {
 func (gs *GameSession) Reset() {
 	gs.curIdx = 0
 	gs.state = ACTIVE
-	gs.MaxNumFails = gs.Parameters.Fields[2].Value // TODO: update this if the position of max fails changes
+	gs.MaxNumFails = gs.Parameters.Fields[2].Value // NOTE: update this if the menu position of max fails changes
 	for i := range gs.Grid {
 		gs.Grid[i] = nil
 	}
