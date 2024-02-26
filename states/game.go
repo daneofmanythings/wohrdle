@@ -204,10 +204,43 @@ func (gs *GameSession) curGuessAsUpperString() string {
 }
 
 func (gs *GameSession) isHardModeSatisfied() bool {
+	countByRune := gs.countByRuneForCurRow()
 	if gs.curIdx == 0 {
 		return true
 	}
-	return true // TODO: implement the hardmode check.
+	// Making things easier to reason about in the code
+	prevRow := &gs.Grid[gs.curIdx-1]
+	currRow := &gs.Grid[gs.curIdx]
+	// First pass to see if any previously correct are missing and to update the countMap
+	// for the second pass
+	for i := range *prevRow {
+		// Making things easier to reason about in the code
+		prevRowCell := (*prevRow)[i]
+		currRowCell := (*currRow)[i]
+		if prevRowCell.state == CORRECT {
+			if prevRowCell.Char != currRowCell.Char {
+				return false
+			}
+			countByRune[currRowCell.Char] -= 1
+		}
+	}
+	// Second pass to catch any missing PARTIALS. looking at the cells of the previous row
+	// in relation to how many are left in the countMap of the current row
+	for _, cell := range *prevRow {
+		// dont care if it isnt a PARTIAL
+		if cell.state != PARTIAL {
+			continue
+		}
+		if countByRune[cell.Char] < 1 {
+			// We found a partial and it isnt represented in the current row.
+			// IT HAS TO BE REPRESENTED
+			return false
+		}
+		// it is represented, so we decrement the count
+		countByRune[cell.Char] -= 1
+	}
+
+	return true
 }
 
 func (gs *GameSession) isValidWord() bool {

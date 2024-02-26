@@ -118,6 +118,68 @@ func TestFinalizeCurRow(t *testing.T) {
 	}
 }
 
+func TestIsHardModeSatisfied(t *testing.T) {
+	testCases := []struct {
+		name        string
+		word        string
+		firstGuess  string
+		secondGuess string
+		expected    bool
+	}{
+		{
+			name:        "sanity check",
+			word:        "tests",
+			firstGuess:  "toast",
+			secondGuess: "toast",
+			expected:    true,
+		},
+		{
+			name:        "missing correct char",
+			word:        "tests",
+			firstGuess:  "toast",
+			secondGuess: "strap",
+			expected:    false,
+		},
+		{
+			name:        "two missing correct char",
+			word:        "tests",
+			firstGuess:  "tales",
+			secondGuess: "strap",
+			expected:    false,
+		},
+		{
+			name:        "missing partial, no correct",
+			word:        "tests",
+			firstGuess:  "adieu",
+			secondGuess: "short",
+			expected:    false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			gs := mockNewGameSession(tc.word)
+			for _, r := range tc.firstGuess {
+				gs.PushRune(r)
+			}
+			gs.finalizeCurRow()
+			for _, r := range tc.secondGuess {
+				gs.PushRune(r)
+			}
+			// TODO: run the check and compare outputs
+			if gs.isHardModeSatisfied() != tc.expected {
+				t.Fatalf("HardMode validation failure.\nword=%s\nfirst=%s\nsecond=%s\nexpected=%v\ngot=%v",
+					tc.word,
+					tc.firstGuess,
+					tc.secondGuess,
+					tc.expected,
+					gs.isHardModeSatisfied(),
+				)
+			}
+		})
+	}
+}
+
 func TestCountByRune(t *testing.T) {
 	gs := mockNewGameSession(wordTests)
 	for _, r := range gs.targetWordAsRunes {
