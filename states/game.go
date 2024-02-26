@@ -66,6 +66,7 @@ type GameSession struct {
 	WordLen     int
 	NumGuesses  int
 	MaxNumFails int
+	HardMode    int
 
 	targetWordAsRunes  []rune
 	targetWordAsString string
@@ -85,6 +86,7 @@ func NewGameSession(params *Parameters) *GameSession {
 		WordLen:     params.Fields[0].Value,
 		NumGuesses:  params.Fields[1].Value,
 		MaxNumFails: params.Fields[2].Value,
+		HardMode:    params.Fields[3].Value,
 		curIdx:      0,
 		validWords:  params.ValidWords(),
 		state:       ACTIVE,
@@ -146,6 +148,7 @@ func (gs *GameSession) UpdateGamestate() {
 	victory := "%s is correct! [c]ontinue | go b[a]ck"
 	guess_loss := "%s was the word! [c]ontinue | go b[a]ck"
 	gave_up_loss := "Aborted. [c]ontinue | go b[a]ck"
+	hardmode_violated := "Hard-mode violated. %d failed entries left"
 
 	if gs.state == LOSS {
 		gs.HelpText = fmt.Sprint(gave_up_loss)
@@ -162,6 +165,19 @@ func (gs *GameSession) UpdateGamestate() {
 			}
 		}
 		return
+	}
+
+	if gs.HardMode == 1 {
+		if !gs.isHardModeSatisfied() {
+			gs.MaxNumFails -= 1
+			if gs.MaxNumFails == 0 {
+				gs.state = LOSS
+				gs.HelpText = fmt.Sprintf(failed_entry_loss, gs.targetWordAsString)
+			} else {
+				gs.HelpText = fmt.Sprintf(hardmode_violated, gs.MaxNumFails)
+			}
+			return
+		}
 	}
 
 	if gs.IsWinner() {
@@ -193,12 +209,62 @@ func (gs *GameSession) curGuessAsUpperString() string {
 	return word
 }
 
+func (gs *GameSession) isHardModeSatisfied() bool {
+	// Can't fail on the first guess
+	if gs.curIdx == 0 {
+		return true
+	}
+
+	// Need this to detect missed PARTIALS
+	countByRune := gs.countMapForCurrRow()
+
+	// Making things easier to reason about in the code
+	prevRow := &gs.Grid[gs.curIdx-1]
+	currRow := &gs.Grid[gs.curIdx]
+	// First pass to see if any previously correct are missing and to update the countMap
+	// for the second pass
+	for i := range *prevRow {
+		// Making things easier to reason about in the code
+		prevRowCell := (*prevRow)[i]
+		currRowCell := (*currRow)[i]
+		if prevRowCell.state != CORRECT {
+			continue
+		}
+		// Since the cell is correct, the chars should match
+		if prevRowCell.Char != currRowCell.Char {
+			return false
+		}
+		// they matched, so decrement the countMap
+		countByRune[currRowCell.Char] -= 1
+	}
+
+	// Second pass to catch any missing PARTIALS. looking at the cells of the previous row
+	// in relation to how many are left in the countMap of the current row
+	for _, cell := range *prevRow {
+		// dont care if it isnt a PARTIAL
+		if cell.state != PARTIAL {
+			continue
+		}
+		if countByRune[cell.Char] < 1 {
+			// We found a partial that isnt represented in the current row.
+			// IT HAS TO BE REPRESENTED
+			return false
+		}
+		// it is represented, so we decrement the count for that PARTIAL
+		countByRune[cell.Char] -= 1
+	}
+
+	return true
+}
+
 func (gs *GameSession) isValidWord() bool {
 	return slices.Contains(gs.validWords, gs.curGuessAsLowerString())
 }
 
 func (gs *GameSession) finalizeCurRow() {
-	countByRune := gs.countByRuneForCurRow()
+	// This populates the cells in the current row with thier correct stylings for the renderer
+
+	countByRune := gs.countMapForTargetWord() // This is to track repeat letters from ISSUE#1
 	// First pass
 	for i := range gs.Grid[gs.curIdx] {
 		cell := &gs.Grid[gs.curIdx][i]
@@ -223,6 +289,7 @@ func (gs *GameSession) finalizeCurRow() {
 		if cell.state != PARTIAL {
 			continue
 		}
+		// We know it is a PARTIAL
 		if countByRune[cell.Char] < 1 {
 			cell.SetState(USED)
 			gs.SeenChars[idx].SetState(CORRECT)
@@ -232,10 +299,18 @@ func (gs *GameSession) finalizeCurRow() {
 	gs.curIdx += 1
 }
 
-func (gs *GameSession) countByRuneForCurRow() map[rune]int {
+func (gs *GameSession) countMapForTargetWord() map[rune]int {
 	countByRune := map[rune]int{}
 	for i := range gs.targetWordAsRunes {
 		countByRune[gs.targetWordAsRunes[i]] += 1
+	}
+	return countByRune
+}
+
+func (gs *GameSession) countMapForCurrRow() map[rune]int {
+	countByRune := map[rune]int{}
+	for i := range gs.curGuessAsUpperString() {
+		countByRune[rune(gs.curGuessAsUpperString()[i])] += 1
 	}
 	return countByRune
 }
@@ -255,7 +330,7 @@ func (gs *GameSession) IsWinner() bool {
 func (gs *GameSession) Reset() {
 	gs.curIdx = 0
 	gs.state = ACTIVE
-	gs.MaxNumFails = gs.Parameters.Fields[2].Value // TODO: update this if the position of max fails changes
+	gs.MaxNumFails = gs.Parameters.Fields[2].Value // NOTE: update this if the menu position of max fails changes
 	for i := range gs.Grid {
 		gs.Grid[i] = nil
 	}

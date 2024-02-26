@@ -11,6 +11,9 @@ import (
 const (
 	MAX_GUESSES int = 20
 	MAX_FAILS   int = 20
+
+	TRUE  int = 1
+	FALSE int = 0
 )
 
 type Field struct {
@@ -22,9 +25,13 @@ var defaultFields []Field = []Field{
 	{"word length", 5},
 	{"num guesses", 6},
 	{"num failed words", 5},
+	{"hard-mode", 0},
 }
 
 type Parameters struct {
+	// Field[0] >> word length
+	// Field[1] >> number of guesses
+	// Field[2] >> failed word attempts
 	Fields        []Field
 	CurEditingIdx int
 
@@ -53,10 +60,6 @@ func NewDefaultParameters(wordRepo map[string][]string) *Parameters {
 	}
 }
 
-// Field[0] >> word length
-// Field[1] >> number of guesses
-// Field[2] >> failed word attempts
-
 func (p *Parameters) ValidWords() []string {
 	return p.WordRepo[strconv.Itoa(p.Fields[0].Value)]
 }
@@ -69,7 +72,7 @@ func (p *Parameters) IncCurField() {
 	}
 }
 
-// This must be updated when menu items are added
+// NOTE: This must be updated when menu items are added
 func (p *Parameters) IncValAtCurField() {
 	switch p.CurEditingIdx {
 	case 0: // word length
@@ -93,6 +96,13 @@ func (p *Parameters) IncValAtCurField() {
 		} else {
 			*val += 1
 		}
+	case 3: // hard-mode flag
+		val := &p.Fields[3].Value
+		if *val == FALSE {
+			*val = TRUE
+		} else {
+			*val = FALSE
+		}
 	}
 }
 
@@ -101,7 +111,7 @@ func (p *Parameters) DecCurField() {
 	p.CurEditingIdx %= len(p.Fields)
 }
 
-// This must be updated when a menu item is added
+// NOTE: This must be updated when a menu item is added
 func (p *Parameters) DecValAtCorField() {
 	switch p.CurEditingIdx {
 	case 0: // word length
@@ -124,6 +134,13 @@ func (p *Parameters) DecValAtCorField() {
 			*val = MAX_FAILS
 		} else {
 			*val -= 1
+		}
+	case 3: // hard-mode flag
+		val := &p.Fields[3].Value
+		if *val == FALSE {
+			*val = TRUE
+		} else {
+			*val = FALSE
 		}
 	}
 }
