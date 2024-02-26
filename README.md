@@ -1,8 +1,24 @@
+<div align="center">
 # WOHRDLE
 
 ![screenshot](/static/bday_image.png)
 
 ![code coverage badge](https://github.com/daneofmanythings/wohrdle/actions/workflows/ci.yml/badge.svg)
+
+###### A Harder Way to Play Wordle
+
+[Summary](#summary)
+•
+[Setup](#setup)
+•
+[Installation](#installation)
+
+## Summary
+</div>
+A wordle clone with more challenging options. Freely adjust the word length, guess count, failed
+input count, and classic hardmode!
+
+![screenshot](/static/settings_image.png)
 
 ## Setup
 - Install [golang](https://go.dev/doc/install)
@@ -16,16 +32,19 @@ git clone https://github.com/daneofmanythings/wohrdle
 ```
 
 
-## Usage
+## Installation
 There are three options for how to use the app.
-1. **[Recommended]** Install the binary into your \$GOBIN (\$GOPATH/bin) to expose it
-as a command in your terminal.
+#### 1. System Install **\[Recommended\]** 
+
+Install the binary into your \$GOBIN (\$GOPATH/bin) to expose it as a command in your terminal.
 ```
 go install
 ```
 You can then run it from anywhere with: ` wohrdle `
 
-2. If you want to build the binary but not commit it to your path.
+#### 2. Build in and run from the source directory
+
+If you want to build the binary but not commit it to your path.
 ```
 go build
 ```
@@ -35,7 +54,9 @@ $HOME/Downloads/wohrdle
 ```
 or `./wohrdle` from the project root.
 
-3. If you don't want to save the built binary, run this from the project root
+#### 3. Run from the souce directory
+
+If you don't want to save the built binary, run this from the project root
 to run the program as a one-off.
 ```
 go run main.go
