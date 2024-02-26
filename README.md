@@ -33,7 +33,7 @@ git clone https://github.com/daneofmanythings/wohrdle
 
 
 ## Installation
-There are three options for how to use the app.
+There are three options for how to install and use the app.
 #### 1. System Install **\[Recommended\]** 
 
 Install the binary into your \$GOBIN (\$GOPATH/bin) to expose it as a command in your terminal.
@@ -48,16 +48,16 @@ If you want to build the binary but not commit it to your path.
 ```
 go build
 ```
-Then to run the program enter the full path to where you cloned the repository. Ex:
+Then, to run the program, enter the full path to where you cloned the repository. Ex:
 ```
 $HOME/Downloads/wohrdle
 ```
-or `./wohrdle` from the project root.
+or, from the repository root, run: `./wohrdle`
 
-#### 3. Run from the souce directory
+#### 3. Run from the source directory
 
-If you don't want to save the built binary, run this from the project root
-to run the program as a one-off.
+If you don't want to save the built binary, run this from the repository root
+to run the app as a one-off.
 ```
 go run main.go
 ```
