@@ -60,6 +60,8 @@ const (
 	LOSS
 )
 
+var gameStates = []GameState{ACTIVE, VICTORY, LOSS}
+
 type GameSession struct {
 	Parameters Parameters
 
@@ -103,6 +105,13 @@ func NewGameSession(params *Parameters) *GameSession {
 	}
 
 	return gs
+}
+
+func (gs *GameSession) setState(state GameState) {
+	if !slices.Contains(gameStates, state) {
+		return
+	}
+	gs.state = state
 }
 
 func (gs *GameSession) GetState() GameState {
@@ -150,7 +159,7 @@ func (gs *GameSession) UpdateGamestate() {
 	gave_up_loss := "Aborted. [c]ontinue | go b[a]ck"
 	hardmode_violated := "Hard-mode violated. %d failed entries left"
 
-	if gs.state == LOSS {
+	if gs.GetState() == LOSS {
 		gs.HelpText = fmt.Sprint(gave_up_loss)
 	}
 
@@ -158,7 +167,7 @@ func (gs *GameSession) UpdateGamestate() {
 		if len(gs.curGuessAsLowerString()) == gs.WordLen {
 			gs.MaxNumFails -= 1
 			if gs.MaxNumFails == 0 {
-				gs.state = LOSS
+				gs.setState(LOSS)
 				gs.HelpText = fmt.Sprintf(failed_entry_loss, gs.targetWordAsString)
 			} else {
 				gs.HelpText = fmt.Sprintf(failed_entry, gs.curGuessAsUpperString(), gs.MaxNumFails)
@@ -171,7 +180,7 @@ func (gs *GameSession) UpdateGamestate() {
 		if !gs.isHardModeSatisfied() {
 			gs.MaxNumFails -= 1
 			if gs.MaxNumFails == 0 {
-				gs.state = LOSS
+				gs.setState(LOSS)
 				gs.HelpText = fmt.Sprintf(failed_entry_loss, gs.targetWordAsString)
 			} else {
 				gs.HelpText = fmt.Sprintf(hardmode_violated, gs.MaxNumFails)
@@ -181,14 +190,14 @@ func (gs *GameSession) UpdateGamestate() {
 	}
 
 	if gs.IsWinner() {
-		gs.state = VICTORY
+		gs.setState(VICTORY)
 		gs.HelpText = fmt.Sprintf(victory, gs.curGuessAsUpperString())
 	}
 
 	gs.finalizeCurRow()
 
 	if gs.curIdx == gs.NumGuesses {
-		gs.state = LOSS
+		gs.setState(LOSS)
 		gs.HelpText = fmt.Sprintf(guess_loss, gs.targetWordAsString)
 	}
 }
@@ -227,7 +236,7 @@ func (gs *GameSession) isHardModeSatisfied() bool {
 		// Making things easier to reason about in the code
 		prevRowCell := (*prevRow)[i]
 		currRowCell := (*currRow)[i]
-		if prevRowCell.state != CORRECT {
+		if prevRowCell.GetState() != CORRECT {
 			continue
 		}
 		// Since the cell is correct, the chars should match
@@ -242,7 +251,7 @@ func (gs *GameSession) isHardModeSatisfied() bool {
 	// in relation to how many are left in the countMap of the current row
 	for _, cell := range *prevRow {
 		// dont care if it isnt a PARTIAL
-		if cell.state != PARTIAL {
+		if cell.GetState() != PARTIAL {
 			continue
 		}
 		if countByRune[cell.Char] < 1 {
@@ -286,7 +295,7 @@ func (gs *GameSession) finalizeCurRow() {
 	for i := range gs.Grid[gs.curIdx] {
 		cell := &gs.Grid[gs.curIdx][i]
 		idx := utils.Find[rune](AllRunes, cell.Char) // finding the location in the seen char tracker
-		if cell.state != PARTIAL {
+		if cell.GetState() != PARTIAL {
 			continue
 		}
 		// We know it is a PARTIAL
@@ -329,7 +338,7 @@ func (gs *GameSession) IsWinner() bool {
 
 func (gs *GameSession) Reset() {
 	gs.curIdx = 0
-	gs.state = ACTIVE
+	gs.setState(ACTIVE)
 	gs.MaxNumFails = gs.Parameters.Fields[2].Value // NOTE: update this if the menu position of max fails changes
 	for i := range gs.Grid {
 		gs.Grid[i] = nil
