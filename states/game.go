@@ -148,17 +148,10 @@ func (gs *GameSession) UpdateGamestate() {
 	victory := "%s is correct! [c]ontinue | go b[a]ck"
 	guess_loss := "%s was the word! [c]ontinue | go b[a]ck"
 	gave_up_loss := "Aborted. [c]ontinue | go b[a]ck"
-	hardmode_violated := "Hard-mode violated. Try again."
+	hardmode_violated := "Hard-mode violated. %d failed entries left"
 
 	if gs.state == LOSS {
 		gs.HelpText = fmt.Sprint(gave_up_loss)
-	}
-
-	if gs.HardMode == 1 {
-		if !gs.isHardModeSatisfied() {
-			gs.HelpText = hardmode_violated
-			return
-		}
 	}
 
 	if !gs.isValidWord() {
@@ -172,6 +165,19 @@ func (gs *GameSession) UpdateGamestate() {
 			}
 		}
 		return
+	}
+
+	if gs.HardMode == 1 {
+		if !gs.isHardModeSatisfied() {
+			gs.MaxNumFails -= 1
+			if gs.MaxNumFails == 0 {
+				gs.state = LOSS
+				gs.HelpText = fmt.Sprintf(failed_entry_loss, gs.targetWordAsString)
+			} else {
+				gs.HelpText = fmt.Sprintf(hardmode_violated, gs.MaxNumFails)
+			}
+			return
+		}
 	}
 
 	if gs.IsWinner() {
