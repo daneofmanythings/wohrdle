@@ -154,6 +154,13 @@ func TestIsHardModeSatisfied(t *testing.T) {
 			secondGuess: "short",
 			expected:    false,
 		},
+		{
+			name:        "two missing partial, no correct",
+			word:        "tests",
+			firstGuess:  "stick",
+			secondGuess: "pound",
+			expected:    false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -166,7 +173,6 @@ func TestIsHardModeSatisfied(t *testing.T) {
 			for _, r := range tc.secondGuess {
 				gs.PushRune(r)
 			}
-			// TODO: run the check and compare outputs
 			if gs.isHardModeSatisfied() != tc.expected {
 				t.Fatalf("HardMode validation failure.\nword=%s\nfirst=%s\nsecond=%s\nexpected=%v\ngot=%v",
 					tc.word,
@@ -191,7 +197,7 @@ func TestCountByRune(t *testing.T) {
 		'E': 1,
 		'S': 2,
 	}
-	recievedMap := gs.countByRuneForCurRow()
+	recievedMap := gs.countMapForTargetWord()
 	for k := range targetMap {
 		if targetMap[k] != recievedMap[k] {
 			t.Fatalf("unexpected count map for %s:\n%v\nexpected:\n%v", gs.targetWordAsString, recievedMap, targetMap)

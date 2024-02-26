@@ -204,10 +204,14 @@ func (gs *GameSession) curGuessAsUpperString() string {
 }
 
 func (gs *GameSession) isHardModeSatisfied() bool {
-	countByRune := gs.countByRuneForCurRow()
+	// Can't fail on the first guess
 	if gs.curIdx == 0 {
 		return true
 	}
+
+	// Need this to detect missed PARTIALS
+	countByRune := gs.countMapForCurrRow()
+
 	// Making things easier to reason about in the code
 	prevRow := &gs.Grid[gs.curIdx-1]
 	currRow := &gs.Grid[gs.curIdx]
@@ -217,13 +221,17 @@ func (gs *GameSession) isHardModeSatisfied() bool {
 		// Making things easier to reason about in the code
 		prevRowCell := (*prevRow)[i]
 		currRowCell := (*currRow)[i]
-		if prevRowCell.state == CORRECT {
-			if prevRowCell.Char != currRowCell.Char {
-				return false
-			}
-			countByRune[currRowCell.Char] -= 1
+		if prevRowCell.state != CORRECT {
+			continue
 		}
+		// Since the cell is correct, the chars should match
+		if prevRowCell.Char != currRowCell.Char {
+			return false
+		}
+		// they matched, so decrement the countMap
+		countByRune[currRowCell.Char] -= 1
 	}
+
 	// Second pass to catch any missing PARTIALS. looking at the cells of the previous row
 	// in relation to how many are left in the countMap of the current row
 	for _, cell := range *prevRow {
@@ -232,11 +240,11 @@ func (gs *GameSession) isHardModeSatisfied() bool {
 			continue
 		}
 		if countByRune[cell.Char] < 1 {
-			// We found a partial and it isnt represented in the current row.
+			// We found a partial that isnt represented in the current row.
 			// IT HAS TO BE REPRESENTED
 			return false
 		}
-		// it is represented, so we decrement the count
+		// it is represented, so we decrement the count for that PARTIAL
 		countByRune[cell.Char] -= 1
 	}
 
@@ -250,7 +258,7 @@ func (gs *GameSession) isValidWord() bool {
 func (gs *GameSession) finalizeCurRow() {
 	// This populates the cells in the current row with thier correct stylings for the renderer
 
-	countByRune := gs.countByRuneForCurRow() // This is to track repeat letters from ISSUE#1
+	countByRune := gs.countMapForTargetWord() // This is to track repeat letters from ISSUE#1
 	// First pass
 	for i := range gs.Grid[gs.curIdx] {
 		cell := &gs.Grid[gs.curIdx][i]
@@ -275,6 +283,7 @@ func (gs *GameSession) finalizeCurRow() {
 		if cell.state != PARTIAL {
 			continue
 		}
+		// We know it is a PARTIAL
 		if countByRune[cell.Char] < 1 {
 			cell.SetState(USED)
 			gs.SeenChars[idx].SetState(CORRECT)
@@ -284,10 +293,18 @@ func (gs *GameSession) finalizeCurRow() {
 	gs.curIdx += 1
 }
 
-func (gs *GameSession) countByRuneForCurRow() map[rune]int {
+func (gs *GameSession) countMapForTargetWord() map[rune]int {
 	countByRune := map[rune]int{}
 	for i := range gs.targetWordAsRunes {
 		countByRune[gs.targetWordAsRunes[i]] += 1
+	}
+	return countByRune
+}
+
+func (gs *GameSession) countMapForCurrRow() map[rune]int {
+	countByRune := map[rune]int{}
+	for i := range gs.curGuessAsUpperString() {
+		countByRune[rune(gs.curGuessAsUpperString()[i])] += 1
 	}
 	return countByRune
 }
